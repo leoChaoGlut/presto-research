@@ -5,6 +5,11 @@
 源码特征:
   [Query,Stage,Task,...] 均使用状态机管理并发
   喜欢在构造方法内处理执行逻辑
+  SetThreadName: 通常是 presto 基础组件开始执行的标志,如:
+    - try (SetThreadName ignored = new SetThreadName("Query-%s", queryStateMachine.getQueryId())) {
+    - try (SetThreadName ignored = new SetThreadName("Task-%s", taskId)) {
+    - try (SetThreadName runnerName = new SetThreadName("SplitRunner-%s", runnerId)) {
+    - try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
 
 presto-cli:
   Presto.main():
@@ -40,4 +45,18 @@ presto-main: [Coordinator,Worker] 都是用这份代码
                               TaskResource.createOrUpdateTask(): 接收 Task 的 rest 接口
                                 SqlTaskManager.updateTask():
                                   SqlTask.updateTask():
-                                    
+                                    SqlTaskExecutionFactory.create():
+                                      SqlTaskExecution.createSqlTaskExecution():
+                                        SqlTaskExecution.SqlTaskExecution(): [driverRunnerFactoriesWithSplitLifeCycle,driverRunnerFactoriesWithDriverGroupLifeCycle,driverRunnerFactoriesWithTaskLifeCycle] 比较重要
+                                          TaskExecutor.addTask():
+                                            List<TaskHandle>.add(): 填加 taskHandle 之后,不考虑返回值,sql 执行在 presto 能就告一段落了,会异步到 TaskExecutor 执行.
+  TaskExecutor.start(): 该方法含有 @PostConstruct ,所以在 presto 启动时就会执行
+    TaskExecutor.addRunnerThread():
+      ExecutorService.execute():
+        TaskRunner.run():
+          PrioritizedSplitRunner.take(): 该方法会阻塞,直到有值返回
+          PrioritizedSplitRunner.process():
+            DriverSplitRunner.processFor():
+              Driver.processFor():
+                Driver.processInternal():
+                  Driver.processNewSources(): 更新 TaskResource
