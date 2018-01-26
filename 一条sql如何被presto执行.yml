@@ -1,0 +1,43 @@
+说明:
+  只考虑正常执行流程:
+  presto 版本: 0.192
+
+源码特征:
+  [Query,Stage,Task,...] 均使用状态机管理并发
+  喜欢在构造方法内处理执行逻辑
+
+presto-cli:
+  Presto.main():
+    Console.run():
+      Console.executeCommand():
+        Console.process():
+          QueryRunner.startQuery():
+            QueryRunner.startInternalQuery():
+              StatementClient.StatementClient():
+                StatementClient.buildQueryRequest(): 构建 http 请求参数
+                JsonResponse.execute(): 这里开始发送请求到 StatmentResource
+
+presto-main: [Coordinator,Worker] 都是用这份代码
+  StatementResource.createQuery(): 接收 cli 请求
+    Query.create():
+      Query.Query():
+        SqlQueryManager.createQuery():
+          QueryQueueManager.submit():
+            SqlQueryExecution.start(): Async
+              SqlQueryExecution.analyzeQuery(): 分析查询语句,生成查询计划
+              SqlQueryExecution.planDistribution(): 分发查询计划到激活的节点
+                SqlQueryScheduler.SqlQueryScheduler():
+                SqlQueryScheduler.createStages(): 关键代码,创建 stage 树,并指定 StageScheduler. StageScheduler 有 4 个实现类,后续异步调用的时候,会使用 Jdk 的 BiFunction 方式来调用.
+              SqlQueryScheduler.start(): 如果状态机显示查询未完成,则执行
+                SqlQueryScheduler.schedule(): Async, 循环执行,直到 execution 完成.
+                  stageSchedulers.get(stage.getStageId()).schedule(): 使用上述 StageScheduler 的实现类来分发 Task 到工作节点.
+                    SqlStageExecution.scheduleTask(): 根据不同的 StageScheduler 实现,进入该方法的入口可能不一样,入口可能是[scheduleTask,scheduleSplits]
+                      HttpRemoteTaskFactory.createRemoteTask(): 创建 http remote task
+                      HttpRemoteTask.start(): 如果状态机显示查询未完成,则执行
+                        HttpRemoteTask.scheduleUpdate():
+                          HttpRemoteTask.sendUpdate(): Async,
+                            HttpClient.executeAsync(): 发送请求到 TaskResource.createOrUpdateTask()
+                              TaskResource.createOrUpdateTask(): 接收 Task 的 rest 接口
+                                SqlTaskManager.updateTask():
+                                  SqlTask.updateTask():
+                                    
