@@ -1,5 +1,5 @@
 说明:
-  只考虑正常执行流程:
+  以下方法栈只考虑正常执行流程:
   presto 版本: 0.192
 
 源码特征:
@@ -60,3 +60,4 @@ presto-main: [Coordinator,Worker] 都是用这份代码
               Driver.processFor():
                 Driver.processInternal():
                   Driver.processNewSources(): 更新 TaskResource
+                    Opertator.getOutput(): 会根据不同的 sql 操作,得到不同的 Operator 实现类
