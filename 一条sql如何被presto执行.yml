@@ -3,6 +3,7 @@
   presto 版本: 0.192
 
 源码特征:
+  主要涉及框架: [Guava,Airlift]
   [Query,Stage,Task,...] 均使用状态机管理并发
   喜欢在构造方法内处理执行逻辑
   SetThreadName: 通常是 presto 基础组件开始执行的标志,如:
@@ -53,11 +54,11 @@ presto-main: [Coordinator,Worker] 都是用这份代码
   TaskExecutor.start(): 该方法含有 @PostConstruct ,所以在 presto 启动时就会执行
     TaskExecutor.addRunnerThread():
       ExecutorService.execute():
-        TaskRunner.run():
+        TaskRunner.run(): Asyc
           PrioritizedSplitRunner.take(): 该方法会阻塞,直到有值返回
           PrioritizedSplitRunner.process():
             DriverSplitRunner.processFor():
               Driver.processFor():
                 Driver.processInternal():
                   Driver.processNewSources(): 更新 TaskResource
-                    Opertator.getOutput(): 会根据不同的 sql 操作,得到不同的 Operator 实现类
+                  Opertator.getOutput(): 会根据不同的 sql 操作,得到不同的 Operator 实现类.然后根据实现,调用对应的 connector . 该方法返回的是一个 Page, Page 相当于一张 RDBMS 的表,只不过 Page 是列存储的.
