@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>personal.leo</groupId>
+    <artifactId>presto-research-plugin</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <packaging>presto-plugin</packaging>
+
+    <properties>
+        <presto.version>0.192</presto.version>
+        <presto.plugin.version>0.3</presto.plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-spi</artifactId>
+            <version>${presto.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.facebook.presto</groupId>
+                <artifactId>presto-maven-plugin</artifactId>
+                <version>${presto.plugin.version}</version>
+                <extensions>true</extensions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

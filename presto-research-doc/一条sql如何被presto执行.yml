@@ -63,3 +63,5 @@ presto-main: [Coordinator,Worker] 都是用这份代码
                   Driver.processNewSources(): 更新 TaskResource
                   Opertator.getOutput(): 会根据不同的 sql 操作,得到不同的 Operator 实现类.然后根据实现,调用对应的 connector . 该方法返回的是一个 Page, Page 相当于一张 RDBMS 的表,只不过 Page 是列存储的. 获取 page 的时候,会根据 [Block 类型,文件格式]等,使用相应的 Loader 来 load 取数据.
                   Operator.addInput():  下一个 Operator 如果需要上一个 Operator 的输出,则会调用该方法
+
+presto-hive: Hive Connector
