@@ -5,6 +5,7 @@
 源码特征:
   主要涉及框架: [Guava,Airlift]
   [Query,Stage,Task,...] 均使用状态机管理并发
+  非常多回调
   喜欢在构造方法内处理执行逻辑
   SetThreadName: 通常是 presto 基础组件开始执行的标志,如:
     - try (SetThreadName ignored = new SetThreadName("Query-%s", queryStateMachine.getQueryId())) {
