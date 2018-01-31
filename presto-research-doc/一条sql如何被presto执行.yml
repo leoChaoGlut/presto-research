@@ -1,5 +1,5 @@
 说明:
-  以下方法栈只考虑正常执行流程:
+  以下方法栈只考虑主要正常执行流程,让大家能快速理解数据是如何在 presto 内部被处理的
   presto 版本: 0.192
 
 源码特征:
@@ -13,6 +13,8 @@
     - try (SetThreadName runnerName = new SetThreadName("SplitRunner-%s", runnerId)) {
     - try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
 
+=====================================================================================================================================================
+
 presto-cli:
   Presto.main():
     Console.run():
@@ -22,7 +24,15 @@ presto-cli:
             QueryRunner.startInternalQuery():
               StatementClient.StatementClient():
                 StatementClient.buildQueryRequest(): 构建 http 请求参数
-                JsonResponse.execute(): 这里开始发送请求到 StatmentResource
+                JsonResponse.execute(): 这里开始发送请求到 StatmentResource,并且会把 response 返回值转为 json,方便后续渲染
+                StatementClient.processResponse(): 这里会直接尝试处理 query 响应,看看有没有返回
+          Query.renderOutput(): 开始打印结果到控制台
+            Query.renderQueryOutput(): 这里会根据是否是"交互"模式,来决定如何渲染输出结果. 这里只考虑以"交互"模式渲染结果.
+              StatusPrinter.printInitialStatusUpdates():
+                StatementClient.advance(): 这里会循环去发送 http 请求去 Coordinator 获取返回值
+                  JsonResponse.execute(): 同上
+
+=====================================================================================================================================================
 
 presto-main: [Coordinator,Worker] 都是用这份代码
   StatementResource.createQuery(): 接收 cli 请求
@@ -64,5 +74,18 @@ presto-main: [Coordinator,Worker] 都是用这份代码
                   Driver.processNewSources(): 更新 TaskResource
                   Opertator.getOutput(): 会根据不同的 sql 操作,得到不同的 Operator 实现类.然后根据实现,调用对应的 connector . 该方法返回的是一个 Page, Page 相当于一张 RDBMS 的表,只不过 Page 是列存储的. 获取 page 的时候,会根据 [Block 类型,文件格式]等,使用相应的 Loader 来 load 取数据.
                   Operator.addInput():  下一个 Operator 如果需要上一个 Operator 的输出,则会调用该方法
+  StatementResource.asyncQueryResults(): 异步返回查询结果给 cli
+    Query.waitForResults():
+      Futures.transform(): 提供一个 function 和 executor 给 guava
+        BoundedExecutor.execute(): 这个方法会由 guava 异步回调
+          coreExecutor.execute(this::drainQueue): 这里会使用 JDK 的 Executor 来调度异步任务
+            BoundedExecutor.drainQueue():
+              queue.poll().run(): 这里执行的时候,意味着会执行 Futures.transform() 的 function 参数
+                Query.getNextResult():
+                  Query.getCachedResult(): 首先会尝试从缓存里去获取返回值
+                    ExchangeClient.pollPage(): 从 ExchangeClient 中获取结果页
+                      QueryResults.QueryResults(): 根据结果页生成 QueryResults 返回给 cli
+
+=====================================================================================================================================================
 
 presto-hive: Hive Connector
